@@ -1,6 +1,6 @@
 <?php
 
-if (!current_user_can(administrator)) {
+if (!current_user_can('administrator')) {
     echo '<h3>Admin access is required</h3>';
 } else {
     include_once('sessions.php');
@@ -26,11 +26,11 @@ if (!current_user_can(administrator)) {
 
     xwp_paymentAccepted();
 
-    if ($keywords != null) {
-        xwp_insertKeywords();
 
-    }
-    if ($_SESSION['streetAddress'] != null) {
+
+
+
+    if (isset($_SESSION['streetAddress'])) {
         xwp_insertPostSchema();
     }
 
@@ -48,10 +48,10 @@ if (!current_user_can(administrator)) {
         <!-- address -->
 
 
-        <input name="streetAddress" placeholder="Street Address">
-        <input name="addressLocality" placeholder="City" type="text">
-        <input name="addressRegion" placeholder="State" type="text">
-        <input name="postalCode" placeholder="Postal Code" type="text">
+        <input name="streetAddress" placeholder="<?php echo xwp_Get_Post_Schema_Street_Address(); ?>" value="<?php echo xwp_Get_Post_Schema_Street_Address(); ?>">
+        <input name="addressLocality" placeholder="<?php echo xwp_Get_Post_Schema_City(); ?>" type="text" value="<?php echo xwp_Get_Post_Schema_City(); ?>">
+        <input name="addressRegion" placeholder="State" type="text" value="<?php echo xwp_Get_Post_Schema_State(); ?>">
+        <input name="postalCode" placeholder="Postal Code" type="text" value="<?php echo xwp_Get_Post_Schema_PostCode(); ?>">
         <hr>
 
         <!-- geo coordinates -->
@@ -65,12 +65,12 @@ if (!current_user_can(administrator)) {
         <!-- Contact Information -->
 
         <h3>Phone</h3>
-        <input name="telephone" placeholder="Phone Number">
+        <input name="telephone" placeholder="Phone Number" value="<?php echo xwp_Get_Post_Schema_PhoneNumber(); ?>">
 
         <!-- email -->
 
         <h3>Email</h3>
-        <input name="email" placeholder="email">
+        <input name="email" placeholder="email" value="<?php echo xwp_Get_Post_Schema_Email(); ?>">
 
         <!-- hours -->
         <hr>
@@ -157,7 +157,7 @@ if (!current_user_can(administrator)) {
 
         <h3>Payment Type</h3>
 
-        <input type="checkbox" name="checkAllPayment" onclick="selectallPayment(this)"><strong>Check All</strong>
+        <input type="checkbox" name="checkAllPayment" onclick="selectAllPayment(this)"><strong>Check All</strong>
         <br>
         <input type="checkbox" name="paymentAccepted[]" value="cash">Cash
         <br>
@@ -189,23 +189,27 @@ if (!current_user_can(administrator)) {
 
         <h3>Brands Carried</h3>
 
-        <textarea name="brands" rows="10" cols="30" placeholder="Comma after each brand."></textarea>
+        <textarea name="brands" rows="10" cols="30" placeholder="Comma after each brand."><?php echo xwp_Get_Post_Schema_Brands(); ?></textarea>
         <hr>
 
         <!-- About Section -->
 
         <h3>About</h3>
         <textarea name="description" rows="10" cols="30"
-                  placeholder="Tell search engines a little about your business."></textarea>
+                  placeholder="Tell search engines a little about your business."><?php echo xwp_Get_Post_Schema_Description(); ?></textarea>
+        <hr>
+        <h3>Insert Logo</h3>
+        <input name="image" value="<?php echo xwp_Get_Page_Schema_Image(); ?>" placeholder="Copy the url of your website logo and paste it here." required><br>
+
         <input type="submit" value="submit">
     </form>
 
 
     <h3>Results</h3>
     <p>The results displayed below are what will display for structured data on the frontend of the pages selected.</p>
-    <?php xwp_json_Post_schema(); ?>
+    <?php xwp_json_Post_schema();?>
     <p>Please check your results with Googles <a
-            href="https://search.google.com/structured-data/testing-tool/u/0/#url=<?php $_SERVER['SERVER_NAME'] ?>"
+            href="https://search.google.com/structured-data/testing-tool/u/0/#url=<?php echo $_SERVER['SERVER_NAME']; ?>"
             target="_blank">Structured Data Testing Tool</a>.</p>
 
 

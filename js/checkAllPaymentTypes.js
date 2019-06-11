@@ -1,4 +1,4 @@
-function selectallPayment(ele)
+function selectAllPayment(ele)
 {
     var selectallPayment = document.getElementsByName("checkAllPayment");
     var checkboxes = document.getElementsByName("paymentAccepted[]");

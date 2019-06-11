@@ -12,10 +12,12 @@
 <?php
 
 
-if (!current_user_can(administrator)) {
+if (!current_user_can("administrator")) {
     echo '<h3>Admin access is required</h3>';
 } else {
-    include_once('sessions.php');
+
+        include_once('sessions.php');
+
     include_once('xenial-WP.php');
 }
 ?>

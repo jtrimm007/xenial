@@ -1,9 +1,9 @@
-function selectall(ele)
+function selectAllPages(pages)
 {
     var selectAll = document.getElementsByName("checkCon");
     var checkboxes = document.getElementsByName("pages[]");
 
-    if(ele.checked)
+    if(pages.checked)
     {
         for(var i = 0; i < checkboxes.length; i++)
         {
@@ -12,7 +12,7 @@ function selectall(ele)
                 checkboxes[i].checked = true;
             }
 
-            checkboxes[i].check = ele.checked;
+            checkboxes[i].check = pages.checked;
         }
     }
     else

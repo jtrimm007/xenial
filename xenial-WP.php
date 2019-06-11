@@ -3,16 +3,16 @@
 if (!defined('ABSPATH')) exit; // Exit if accessed directly
 
 // Add includes and requires
-if(!function_exists('wp_get_current_user')) {
-    include(ABSPATH . "wp-includes/pluggable.php");
-}
+//if(!function_exists('wp_get_current_user')) {
+//    include(ABSPATH . "wp-includes/pluggable.php");
+//}
 
 /*
 Plugin Name:  xenial
 Plugin URI:   https://xenial.trimwebdesign.com
 Description:  Custom Schema
 Header Comment
-Version:      1.1.4
+Version:      1.1.10
 Author:       Joshua Trimm
 Author URI:   https://trimwebdesign.com
 License:      GPL2
@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 //Define plugin version
-define("XENIAL_VERSION", "1.1.4");
+define("XENIAL_VERSION", "1.1.10");
 
 //Define plugin path slug
 define("XENIAL_PLUGINPATH", "/" . plugin_basename(dirname(__FILE__)) . "/");
@@ -57,11 +57,11 @@ define('XENIALWP1', version_compare($GLOBALS['wp_version'], '6.9.999', '>'));
  *
  * @package        WordPress_Plugins
  * @subpackage    XenialForWPAdmin
- * @since        1.1.4
+ * @since        1.1.10
  * @author        Joshua Trimm
  */
 
-
+register_activation_hook(__FILE__, 'xwp_activation');
 /**
  * xwp_activation
  * void
@@ -83,7 +83,7 @@ function xwp_activation()
             addressRegion TEXT(100),
             postalCode INT(55),
             streetAddress VARCHAR(100),
-            pages VARCHAR(55),
+            pages VARCHAR(255),
             paymentAccepted VARCHAR(255),
             openingHours VARCHAR(255),
             priceRange VARCHAR(255),
@@ -94,8 +94,8 @@ function xwp_activation()
             PRIMARY KEY (id)         
         )';
 
-        $initializePages = "INSERT INTO `" . $table_name . "` (`id`, `addressLocality`, `addressRegion`, `postalCode`, `streetAddress`, `pages`, `paymentAccepted`) VALUES ('1', NULL, NULL, NULL, NULL, NULL, NULL)";
-        $initializePost = "INSERT INTO `" . $table_name . "` (`id`, `addressLocality`, `addressRegion`, `postalCode`, `streetAddress`, `pages`, `paymentAccepted`) VALUES ('2', NULL, NULL, NULL, NULL, NULL, NULL)";
+        $initializePages = "INSERT INTO `" . $table_name . "` (`id`, `addressLocality`, `addressRegion`, `postalCode`, `streetAddress`, `pages`, `paymentAccepted`, `image`) VALUES ('1', NULL, NULL, NULL, NULL, NULL, NULL, NULL)";
+        $initializePost = "INSERT INTO `" . $table_name . "` (`id`, `addressLocality`, `addressRegion`, `postalCode`, `streetAddress`, `pages`, `paymentAccepted`, `image`) VALUES ('2', NULL, NULL, NULL, NULL, NULL, NULL, NULL)";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
@@ -108,11 +108,42 @@ function xwp_activation()
 
         add_option('xenial_database_version', '1.0.1');
     }
+	flush_rewrite_rules();
+
 
 }
 
-register_activation_hook(__FILE__, 'xwp_activation');
 
+
+
+function xwp_Update_Database()
+{
+    global $wpdb;
+
+    //include_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    $pagesType = $wpdb->get_results('DESCRIBE wp_schemaLocalBusiness pages');
+    $pagesTypeImage = $wpdb->get_results('DESCRIBE wp_schemaLocalBusiness pages');
+
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+
+    if ($pagesType[0]->Types != 'varchar(255)') {
+        $updateDatabase = $wpdb->query('ALTER TABLE `' . $table_name . '` MODIFY COLUMN `pages` VARCHAR(255);');
+
+        dbDelta($updateDatabase);
+
+    }
+
+    if ($pagesTypeImage[0]->Types != 'varchar(255)')
+    {
+        $updateDatabase = $wpdb->query('ALTER TABLE `' . $table_name . '` ADD `image` VARCHAR(255);');
+
+        dbDelta($updateDatabase);
+    }
+
+}
+
+register_activation_hook(__FILE__, 'xwp_Update_Database');
 
 /**
  * xwp_insert_scripts
@@ -124,10 +155,10 @@ register_activation_hook(__FILE__, 'xwp_activation');
  */
 function xwp_insert_scripts()
 {
-    wp_enqueue_script('jquery', '<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>', '1.0.0', true);
-
-    wp_enqueue_script( 'schemaNav', plugin_dir_url( __FILE__ ) . 'js/schemaNav.js', array('jquery'), '1.0.0', true );
-    wp_enqueue_script( 'lazyLoad', plugin_dir_url( __FILE__ ) . 'js/lazyLoad.js', array('jquery'), '1.0.0', true );
+//    wp_enqueue_script('jquery', '<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>', '1.0.0', true);
+//
+//    wp_enqueue_script( 'schemaNav', plugin_dir_url( __FILE__ ) . 'js/schemaNav.js', array('jquery'), '1.0.0', true );
+//    wp_enqueue_script( 'lazyLoad', plugin_dir_url( __FILE__ ) . 'js/lazyLoad.js', array('jquery'), '1.0.0', true );
 }
 
 add_action( 'wp_enqueue_scripts', 'xwp_insert_scripts' );
@@ -141,8 +172,9 @@ add_action( 'wp_enqueue_scripts', 'xwp_insert_scripts' );
  *
  */
 function xwp_insert_admin_scripts() {
+	//var_dump(plugin_dir_url( __FILE__ ));
 
-    wp_enqueue_script( 'check_all_pages', plugin_dir_url( __FILE__ ) . 'js/checkAllPages.js' );
+    wp_enqueue_script( 'check_all_pages_xenial', plugin_dir_url( __FILE__ ) . 'js/checkAllPages.js' );
     wp_enqueue_script( 'openTabs', plugin_dir_url( __FILE__) . 'js/openTabs.js');
     wp_enqueue_script( 'check_all_payment_types', plugin_dir_url( __FILE__ ) . 'js/checkAllPaymentTypes.js' );
 }
@@ -173,23 +205,18 @@ function xwp_xenial_menu()
 
         //Menu variables for schema page
         $schemaLocalBusiness_page_title = 'Xenial Page Schema';
-        $schemaLocalBusiness_menu_title = 'Post Schema';
+        $schemaLocalBusiness_menu_title = 'Page Schema';
         $sub_schemaLocalBusiness_slug = 'schema.php';
 
         //Menu variables for xwp-post page
         $schemaPost_page_title = 'Xenial Post Schema';
-        $schemaPost_menu_title = 'Page Schema';
+        $schemaPost_menu_title = 'Post Schema';
         $sub_schemaPost_slug = 'xwp-post-schema.php';
 
         //Menu variables for xwp-custom-robots.php
         $robotsTxt_page_title = 'Xenial Custom Robots.txt';
         $robotsTxt_menu_title = 'Robots.txt';
         $sub_robotsTxt_slug = 'xwp-custom-robots.php';
-
-        //Menu variables for xwp-twitter-automation.php
-        $twitterAuto_page_title = 'Xenial Twitter Automation';
-        $twitterAuto_menu_title = 'Twitter Automation';
-        $sub_twitterAuto_slug = 'xwp-twitter-automation.php';
 
 
 
@@ -209,10 +236,6 @@ function xwp_xenial_menu()
         add_submenu_page($parent_slug, $robotsTxt_page_title, $robotsTxt_menu_title, $capability, $sub_robotsTxt_slug, $function);
 
 
-        //Add xwp-twitter to menue
-        add_submenu_page($parent_slug, $twitterAuto_page_title, $twitterAuto_menu_title, $capability, $sub_twitterAuto_slug, $function);
-
-
     }
 }
 
@@ -227,7 +250,12 @@ add_action('admin_menu', 'xwp_xenial_menu');
  */
 function xwp_start_xenial_pages()
 {
-    $page = $_GET['page'];
+	$page = '';
+	if(isset($_GET['page']))
+	{
+		$page = $_GET['page'];
+	}
+
     //var_dump($page);
     if (!strcmp($page, 'xenial-information.php')) {
 
@@ -237,12 +265,12 @@ function xwp_start_xenial_pages()
         include_once 'schema.php';
     } elseif (!strcmp($page, 'xwp-post-schema.php')) {
         include_once 'xwp-post-schema.php';
-    } elseif (!strcmp($page, 'xwp-custom-robots.php')) {
-        include_once 'xwp-custom-robots.php';
     } elseif (!strcmp($page, 'xwp-twitter-automation.php')){
         include_once 'xwp-twitter-automation.php';
     } elseif (!strcmp($page, 'xwp-sitemap.php')) {
         include_once 'xwp-sitemap.php';
+    } elseif (!strcmp($page, 'xwp-custom-robots.php')){
+    	include_once 'xwp-custom-robots.php';
     }
 }
 
@@ -293,25 +321,7 @@ function xwp_getPageIDs()
 
 }
 
-/**
- * xwp_insertKeywords
- * void
- * Description: Not currently being used.
- */
-function xwp_insertKeywords()
-{
-    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
 
-    global $wpdb;
-    $table_name = $wpdb->prefix . "schemaLocalBusiness";
-
-    $table = 'schemaweb';
-
-    $insert = "INSERT INTO schemaweb (keywords) VALUES ('" . json_encode($_SESSION['keywords']) . "')";
-
-    $wpdb->query($insert);
-
-}
 
 
 /**
@@ -405,7 +415,9 @@ function xwp_insertLocalBusinessSchema()
 
     $table_name = $wpdb->prefix . "schemaLocalBusiness";
 
-    $insert = "UPDATE " . $table_name . " SET addressLocality = '" . sanitize_text_field($_SESSION['addressLocality']) . "', addressRegion = '" . sanitize_text_field($_SESSION['addressRegion']) . "', postalCode = '" . sanitize_text_field($_SESSION['postalCode']) . "', streetAddress = '" . sanitize_text_field($_SESSION['streetAddress']) . "', pages = '" . $pages . "', paymentAccepted = '" . $paymentAccepted . "', openingHours = '" . $openingHours . "', priceRange = '" . sanitize_text_field($_SESSION['priceRange']) . "', brands = '" . sanitize_text_field($_SESSION['brands']) . "', description = '" . sanitize_text_field($_SESSION['description']) . "', email = '" . sanitize_email($_SESSION['email']) . "', telephone = '" . sanitize_text_field($_SESSION['telephone']) . "' WHERE id = 1";
+    var_dump($_SESSION['image']);
+
+    $insert = "UPDATE " . $table_name . " SET addressLocality = '" . sanitize_text_field($_SESSION['addressLocality']) . "', addressRegion = '" . sanitize_text_field($_SESSION['addressRegion']) . "', postalCode = '" . sanitize_text_field($_SESSION['postalCode']) . "', streetAddress = '" . sanitize_text_field($_SESSION['streetAddress']) . "', pages = '" . $pages . "', paymentAccepted = '" . $paymentAccepted . "', openingHours = '" . $openingHours . "', priceRange = '" . sanitize_text_field($_SESSION['priceRange']) . "', brands = '" . sanitize_text_field($_SESSION['brands']) . "', description = '" . sanitize_text_field($_SESSION['description']) . "', email = '" . sanitize_email($_SESSION['email']) . "', telephone = '" . sanitize_text_field($_SESSION['telephone']) . "', image = '" . sanitize_text_field($_SESSION['image']) . "' WHERE id = 1";
 
     $wpdb->query($insert);
 
@@ -443,9 +455,31 @@ function xwp_insertPostSchema()
 
     $table_name = $wpdb->prefix . "schemaLocalBusiness";
 
-    $insert = "UPDATE " . $table_name . " SET addressLocality = '" . sanitize_text_field($_SESSION['addressLocality']) . "', addressRegion = '" . sanitize_text_field($_SESSION['addressRegion']) . "', postalCode = '" . sanitize_text_field($_SESSION['postalCode']) . "', streetAddress = '" . sanitize_text_field($_SESSION['streetAddress']) . "', pages = '" . $pages . "', paymentAccepted = '" . $paymentAccepted . "', openingHours = '" . $openingHours . "', priceRange = '" . sanitize_text_field($_SESSION['priceRange']) . "', brands = '" . sanitize_text_field($_SESSION['brands']) . "', description = '" . sanitize_text_field($_SESSION['description']) . "', email = '" . sanitize_email($_SESSION['email']) . "', telephone = '" . sanitize_text_field($_SESSION['telephone']) . "' WHERE id = 2";
+    // $insert = "UPDATE " . $table_name . " SET addressLocality = '" . sanitize_text_field($_SESSION['addressLocality']) . "', addressRegion = '" . sanitize_text_field($_SESSION['addressRegion']) . "', postalCode = '" . sanitize_text_field($_SESSION['postalCode']) . "', streetAddress = '" . sanitize_text_field($_SESSION['streetAddress']) . "', pages = '" . $pages . "', paymentAccepted = '" . $paymentAccepted . "', openingHours = '" . $openingHours . "', priceRange = '" . sanitize_text_field($_SESSION['priceRange']) . "', brands = '" . sanitize_text_field($_SESSION['brands']) . "', description = '" . sanitize_text_field($_SESSION['description']) . "', email = '" . sanitize_email($_SESSION['email']) . "', telephone = '" . sanitize_text_field($_SESSION['telephone']) . "' WHERE id = 2";
 
-    $wpdb->query($insert);
+    //var_dump($pages);
+    //$wpdb->query($insert);
+
+    $wpdb->update(
+        $table_name,
+        array(
+            'addressLocality' => sanitize_text_field($_SESSION['addressLocality']),
+            'addressRegion' =>  sanitize_text_field($_SESSION['addressRegion']),
+            'postalCode' => sanitize_text_field($_SESSION['postalCode']),
+            'streetAddress' => sanitize_text_field($_SESSION['streetAddress']),
+            'pages' =>  " . $pages . ",
+            'paymentAccepted' => $paymentAccepted ,
+            'openingHours' => ". $openingHours . ",
+            'priceRange' => sanitize_text_field($_SESSION['priceRange']),
+            'brands' => sanitize_text_field($_SESSION['brands']),
+            'description' => sanitize_text_field($_SESSION['description']),
+            'email' => sanitize_email($_SESSION['email']),
+            'telephone' => sanitize_text_field($_SESSION['telephone']),
+            'image' => sanitize_text_field($_SESSION['image']),
+
+        ),
+        array( 'ID' => 2)
+    );
 
 }
 
@@ -458,14 +492,16 @@ function xwp_insertPostSchema()
 function xwp_selectPages()
 {
 
-    $page_ids = get_posts(array(
-        'fields'          => 'ids', // Only get post IDs
-        'posts_per_page'  => -1
-    ));;
+    //$page_ids = get_posts(array(
+    //    'fields'          => 'ids', // Only get post IDs
+    //    'posts_per_page'  => -1
+    //));;
 
-    echo '<h3>My Post List :</h3>';
+    $page_ids = get_all_page_ids();
+
+    echo '<h3>My Page List :</h3>';
     echo '<br>';
-    echo '<input type="checkbox" name = "checkCon" onClick="selectall(this)" >' . ' <strong>Check all boxes</strong>';
+    echo '<input type="checkbox" name="checkCon" onclick="selectAllPages(this)" ><strong>Check all boxes</strong>';
 
     foreach ($page_ids as $page) {
         echo '<br>';
@@ -481,15 +517,19 @@ function xwp_selectPages()
 function xwp_selectPosts()
 {
 
-    $page_ids = get_all_page_ids();
+    $page_ids = get_posts(array(
+        'numberposts' => -1
+    ));
 
-    echo '<h3>My Page List :</h3>';
+    //var_dump($page_ids);
+
+    echo '<h3>My Post List :</h3>';
     echo '<br>';
-    echo '<input type="checkbox" name = "checkCon" onClick="selectall(this)" >' . ' <strong>Check all boxes</strong>';
+    echo '<input type="checkbox" name="checkCon" onclick="selectAllPages(this)">' . ' <strong>Check all boxes</strong>';
 
-    foreach ($page_ids as $page) {
+    foreach ($page_ids as $page => $value) {
         echo '<br>';
-        echo '<input type="checkbox" name="pages[]" value="' . $page . '">' . ' ' . get_the_title($page) . ' ';
+        echo '<input type="checkbox" name="pages[]" value="' . $value -> ID . '">' . ' ' . get_the_title($value -> ID) . ' ';
     }
 }
 
@@ -502,7 +542,7 @@ function xwp_selectPosts()
 function xwp_paymentAccepted()
 {
 
-    if ($_SESSION['paymentAccepted'] != null) {
+    if (isset($_SESSION['paymentAccepted'])) {
         $paymentAccepted = implode(",", $_SESSION['paymentAccepted']);
 
     }
@@ -522,11 +562,11 @@ function xwp_selectAllFromDatabase()
 
     $table_name = $wpdb->prefix . "schemaLocalBusiness";
 
-    $select = "SELECT * FROM " . $table_name . "";
+    $select = "SELECT * FROM " . $table_name . " ";
 
     $results = $wpdb->get_row($select);
 
-    for ($x = 1; $x <= $results; $x++) {
+    for ($x = 1; $x <= sizeof($results); $x++) {
         $row[] = $results;
     }
 
@@ -554,7 +594,7 @@ function xwp_selectAllFromDatabase()
 
 function xwp_getLogoForSchema()
 {
-    $logo = get_custom_logo(466);
+    $logo = the_custom_logo();
     echo $logo;
 }
 
@@ -568,32 +608,33 @@ function xwp_displayCustomSchema()
 
 //get website title
     $title = get_bloginfo('name');
+    $post = [];
 
 //get logo address
-    $args = array(
-        'post_type' => 'attachment',
-        'post_mime_type' => 'image',
-        'post_parent' => $post->ID
-    );
-    $images = get_posts($args);
-
-    $logo = array();
-    foreach ($images as $image):
-
-        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
-
-    endforeach;
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
 
     include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
 
     global $wpdb;
     $table_name = $wpdb->prefix . "schemaLocalBusiness";
 
-    $select = "SELECT * FROM " . $table_name . "";
+    $select = "SELECT * FROM `" . $table_name . "`";
 
     $results = $wpdb->get_row($select);
 
-    for ($x = 1; $x <= $results; $x++) {
+    for ($x = 1; $x <= sizeof($results); $x++) {
         $row[] = $results;
     }
 
@@ -610,10 +651,16 @@ function xwp_displayCustomSchema()
     $description = $row[0]->description;
     $email = $row[0]->email;
     $telephone = $row[0]->telephone;
+    $image = $row[0]->image;
 
-    $page = $row[1]->pages;
+    $page = $row[0]->pages;
 
-    if (is_page($page)) {
+    $exploding = explode(",", $page);
+
+    //var_dump($exploding);
+
+
+    if (is_page($exploding)) {
 
         echo '<script type="application/ld+json">
 {
@@ -632,7 +679,7 @@ function xwp_displayCustomSchema()
   "telephone": "' . $telephone . '",
   "email": "' . $email . '",
   "priceRange": "' . $priceRange . '",
-  "image": "' . $logo[0] . '",
+  "image": "' . $image . '",
   "brand": "' . $brands . '",
   "paymentAccepted": "' . $paymentAccepted . '"
 }
@@ -654,19 +701,19 @@ function xwp_displayPostSchema()
     $title = get_bloginfo('name');
 
 //get logo address
-    $args = array(
-        'post_type' => 'attachment',
-        'post_mime_type' => 'image',
-        'post_parent' => $post->ID
-    );
-    $images = get_posts($args);
-
-    $logo = array();
-    foreach ($images as $image):
-
-        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
-
-    endforeach;
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
 
     include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
 
@@ -677,7 +724,7 @@ function xwp_displayPostSchema()
 
     $results = $wpdb->get_row($select);
 
-    for ($x = 1; $x <= $results; $x++) {
+    for ($x = 1; $x <= sizeof($results); $x++) {
         $row[$x] = $results;
     }
 
@@ -694,10 +741,19 @@ function xwp_displayPostSchema()
     $description = $row[1]->description;
     $email = $row[1]->email;
     $telephone = $row[1]->telephone;
+    $image = $row[1]->image;
 
     $posts = $row[1]->pages;
 
-    if (is_single($posts)) {
+
+    $exploding = explode(",", $posts);
+
+    //var_dump($exploding);
+
+
+    // foreach($posts as $post)
+    // {
+    if (is_single($exploding)) {
 
         echo '<script type="application/ld+json">
 {
@@ -716,12 +772,15 @@ function xwp_displayPostSchema()
   "telephone": "' . $telephone . '",
   "email": "' . $email . '",
   "priceRange": "' . $priceRange . '",
-  "image": "' . $logo[0] . '",
+  "image": "' . $image . '",
   "brand": "' . $brands . '",
   "paymentAccepted": "' . $paymentAccepted . '"
 }
 </script>';
     }
+    // }
+
+
 }
 
 add_action('wp_footer', 'xwp_displayPostSchema');
@@ -738,19 +797,19 @@ function xwp_json_Page_schema()
     $title = get_bloginfo('name');
 
 //get logo address
-    $args = array(
-        'post_type' => 'attachment',
-        'post_mime_type' => 'image',
-        'post_parent' => $post->ID
-    );
-    $images = get_posts($args);
-
-    $logo = array();
-    foreach ($images as $image):
-
-        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
-
-    endforeach;
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
 
 
     include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
@@ -758,11 +817,11 @@ function xwp_json_Page_schema()
     global $wpdb;
     $table_name = $wpdb->prefix . "schemaLocalBusiness";
 
-    $select = "SELECT * FROM " . $table_name . "";
+    $select = "SELECT * FROM `" . $table_name . "`";
 
     $results = $wpdb->get_row($select);
 
-    for ($x = 1; $x <= $results; $x++) {
+    for ($x = 1; $x <= sizeof($results); $x++) {
         $row[] = $results;
     }
 
@@ -779,6 +838,7 @@ function xwp_json_Page_schema()
     $description = $row[0]->description;
     $email = $row[0]->email;
     $telephone = $row[0]->telephone;
+    $image = $row[0]->image;
 
     echo '
   "@context": "http://schema.org",<br>
@@ -796,7 +856,7 @@ function xwp_json_Page_schema()
   "telephone": "' . $telephone . '",<br>
   "email": "' . $email . '",<br>
   "priceRange": "' . $priceRange . '",<br>
-  "image": "' . $logo[0] . '",<br>
+  "image": "' . $image . '",<br>
   "brand": "' . $brands . '",<br>
   "paymentAccepted": "' . $paymentAccepted . '"
 }
@@ -814,20 +874,6 @@ function xwp_json_Post_schema()
     //get website title
     $title = get_bloginfo('name');
 
-//get logo address
-    $args = array(
-        'post_type' => 'attachment',
-        'post_mime_type' => 'image',
-        'post_parent' => $post->ID
-    );
-    $images = get_posts($args);
-
-    $logo = array();
-    foreach ($images as $image):
-
-        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
-
-    endforeach;
 
 
     include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
@@ -840,7 +886,7 @@ function xwp_json_Post_schema()
 
     $results = $wpdb->get_row($select);
 
-    for ($x = 1; $x <= $results; $x++) {
+    for ($x = 1; $x <= sizeof($results); $x++) {
         $row[$x] = $results;
         //print_r($row);
     }
@@ -858,6 +904,9 @@ function xwp_json_Post_schema()
     $description = $row[1]->description;
     $email = $row[1]->email;
     $telephone = $row[1]->telephone;
+    $image = $row[1]->image;
+
+    //var_dump($priceRange);
 
     echo '
   "@context": "http://schema.org",<br>
@@ -875,7 +924,7 @@ function xwp_json_Post_schema()
   "telephone": "' . $telephone . '",<br>
   "email": "' . $email . '",<br>
   "priceRange": "' . $priceRange . '",<br>
-  "image": "' . $logo[0] . '",<br>
+  "image": "' . $image . '",<br>
   "brand": "' . $brands . '",<br>
   "paymentAccepted": "' . $paymentAccepted . '"
 }
@@ -919,7 +968,7 @@ function js_defer_attr( $tag, $handle)
 
 
 //part of function is_logged_in()
-add_action('init','is_logged_in');
+//add_action('init','is_logged_in');
 /**
  * is_logged_in
  * bool
@@ -927,46 +976,48 @@ add_action('init','is_logged_in');
  * @return boolean
  *
  */
-function is_logged_in(){
-    $current_user = wp_get_current_user();
-    if ( empty( $current_user->ID ) )
-    {
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * minify_html
- * null|string|string[]
- * Description:
- * *
- * @return null|string|string[]
- * @param $minify
- *
- */
-if(!is_logged_in())
-{
-    function minify_html($minify)
-    {
-        $search = array(
-            '/\>[^\S ]+/s',  // strip whitespaces after tags, except space
-            '/[^\S ]+\</s',  // strip whitespaces before tags, except space
-            '/(\s)+/s'       // shorten multiple whitespace sequences
-        );
-        $replace = array(
-            '>',
-            '<',
-            '\\1'
-        );
-        $minify = preg_replace($search, $replace, $minify);
-        return $minify;
-    }
-
-    ob_start("minify_html");
-    add_action('get_header', 'minify_html');
-}
+//function is_logged_in()
+//{
+//    var_dump(wp_get_current_user()->ID);
+//    var_dump(get_current_user_id());
+//    if ( get_current_user_id() == 0 )
+//    {
+//        return false;
+//    }
+//
+//    return true;
+//}
+//
+///**
+// * minify_html
+// * null|string|string[]
+// * Description:
+// * *
+// * @return null|string|string[]
+// * @param $minify
+// *
+// */
+//if(is_logged_in() != 0)
+//{
+//    function minify_html($minify)
+//    {
+//        $search = array(
+//            '/\>[^\S ]+/s',  // strip whitespaces after tags, except space
+//            '/[^\S ]+\</s',  // strip whitespaces before tags, except space
+//            '/(\s)+/s'       // shorten multiple whitespace sequences
+//        );
+//        $replace = array(
+//            '>',
+//            '<',
+//            '\\1'
+//        );
+//        $minify = preg_replace($search, $replace, $minify);
+//        return $minify;
+//    }
+//
+//    ob_start("minify_html");
+//    add_action('get_header', 'minify_html');
+//}
 
 
 // Remove WP Version From Styles
@@ -994,7 +1045,7 @@ function xwp_remove_ver_css_js($src)
 /**
  * xwp_custom_robots_dot_txt
  * void
- * Description: creates a robots.txt file in the public_html directory and writes a file called robots.txt allowing only google to crawl website.
+ * Description: DEPRICATED creates a robots.txt file in the public_html directory and writes a file called robots.txt allowing only google to crawl website.
  *
  *
  */
@@ -1006,7 +1057,7 @@ function xwp_custom_robots_dot_txt()
 
     $myfile = fopen($path . "robots.txt", "w") or die("Unable to open file!");
 
-    $txt = "User-agent: Googlebot\nDisallow:\n\nUser-agent: *\nDisallow: /";
+    $txt = "User-agent: Googlebot\nDisallow: /wp-admin\n\nUser-agent: *\nDisallow: /wp-admin ";
 
     echo "<p>What was wrote to robots.txt: " . $txt ."</p>";
 
@@ -1099,4 +1150,780 @@ function xwp_create_sitemap() {
     $fp = fopen( ABSPATH . "sitemap.xml", 'w' );
     fwrite( $fp, $sitemap );
     fclose( $fp );
+}
+
+/**
+ * @return mixed
+ */
+function xwp_Get_Post_Schema_Street_Address()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+
+    $streetAddress = $row[1]->streetAddress;
+
+    return $streetAddress;
+
+}
+
+/**
+ * @return mixed
+ */
+function xwp_Get_Post_Schema_City()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $addressLocality = $row[1]->addressLocality;
+
+    //var_dump($addressLocality);
+
+    return $addressLocality;
+
+}
+
+function xwp_Get_Post_Schema_State()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $addressRegion = $row[1]->addressRegion;
+
+    //var_dump($addressLocality);
+
+    return $addressRegion;
+
+}
+
+function xwp_Get_Post_Schema_PostCode()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $postCode = $row[1]->postalCode;
+
+    //var_dump($addressLocality);
+
+    return $postCode;
+
+}
+
+function xwp_Get_Post_Schema_PhoneNumber()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+	for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $phoneNumber = $row[1]->telephone;
+
+    //var_dump($addressLocality);
+
+    return $phoneNumber;
+
+}
+
+function xwp_Get_Post_Schema_Email()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $email = $row[1]->email;
+
+    //var_dump($addressLocality);
+
+    return $email;
+
+}
+
+function xwp_Get_Post_Schema_Description()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $description = $row[1]->description;
+
+    //var_dump($addressLocality);
+
+    return $description;
+
+}
+
+function xwp_Get_Post_Schema_Brands()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 2";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $brands = $row[1]->brands;
+
+    //var_dump($addressLocality);
+
+    return $brands;
+
+}
+
+function xwp_Get_Page_Schema_Street_Address()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+
+    $streetAddress = $row[1]->streetAddress;
+
+    return $streetAddress;
+
+}
+
+/**
+ * @return mixed
+ */
+function xwp_Get_Page_Schema_City()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $addressLocality = $row[1]->addressLocality;
+
+    //var_dump($addressLocality);
+
+    return $addressLocality;
+
+}
+
+function xwp_Get_Page_Schema_State()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $addressRegion = $row[1]->addressRegion;
+
+    //var_dump($addressLocality);
+
+    return $addressRegion;
+
+}
+
+function xwp_Get_Page_Schema_PostCode()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $postCode = $row[1]->postalCode;
+
+    //var_dump($addressLocality);
+
+    return $postCode;
+
+}
+
+function xwp_Get_Page_Schema_PhoneNumber()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $phoneNumber = $row[1]->telephone;
+
+    //var_dump($addressLocality);
+
+    return $phoneNumber;
+
+}
+
+function xwp_Get_Page_Schema_Email()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $email = $row[1]->email;
+
+    //var_dump($addressLocality);
+
+    return $email;
+
+}
+function xwp_Get_Page_Schema_Image()
+{
+
+    $row = [];
+    $post = [];
+
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $description = $row[1]->image;
+
+    //var_dump($addressLocality);
+
+    return $description;
+
+}
+function xwp_Get_Page_Schema_Description()
+{
+
+    $row = [];
+    $post = [];
+
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $description = $row[1]->description;
+
+    //var_dump($addressLocality);
+
+    return $description;
+
+}
+
+function xwp_Get_Page_Schema_Brands()
+{
+
+    //get website title
+    $title = get_bloginfo('name');
+
+//get logo address
+//    $args = array(
+//        'post_type' => 'attachment',
+//        'post_mime_type' => 'image',
+//        'post_parent' => $post->ID
+//    );
+//    $images = get_posts($args);
+//
+//    $logo = array();
+//    foreach ($images as $image):
+//
+//        $logo[] = wp_get_attachment_url($image->ID, '', '', '', '');
+//
+//    endforeach;
+
+
+    include_once($_SERVER['DOCUMENT_ROOT'] . '/wp-config.php');
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . "schemaLocalBusiness";
+
+    $select = "SELECT * FROM `" . $table_name . "` WHERE id = 1";
+
+
+    $results = $wpdb->get_row($select);
+
+    for ($x = 1; $x <= sizeof($results); $x++) {
+        $row[$x] = $results;
+        //print_r($row);
+    }
+
+    //print_r($row);
+
+    $brands = $row[1]->brands;
+
+    //var_dump($addressLocality);
+
+    return $brands;
+
 }

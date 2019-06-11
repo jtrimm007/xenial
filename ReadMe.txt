@@ -3,9 +3,9 @@ Contributors: jtrimm007
 Donate link: https://seojohnsoncity.trimwebdesign.com/
 Tags: schema, seo, schema.org, localBusiness Schema, Structured Data, Page Speed, Google
 Requires at least: 3.0.1
-Tested up to: 4.9.1
-Requires PHP: 5.2.4
-Stable tag: 1.1.3
+Tested up to: 5.2.0
+Requires PHP: 7.0.0
+Stable tag: 1.1.10
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,12 +17,14 @@ Xenial is a custom structured data tool that will help your website rankings. Ou
 one is generating custom Schema.org Structured Data.
 
 Functions:
-- Minification of HTML
-- Inserts Schema into navigation for Divi builder
-- Removes search string querys from URL
+
 - Generates local business schema for pages & posts
 - Customized robots.txt file generated
-- A form of Lazy Loading to improve page speed
+- Generates a sitemap.xml file to help search engines rank your website.
+
+
+[youtube https://www.youtube.com/watch?v=tVCIttT242Y&feature=youtu.be]
+
 
 
 == Installation ==
@@ -47,26 +49,26 @@ Yes, we plan on making this plugin very dynamic.
 == Screenshots ==
 
 - Activating Xenial is simple
-'/assets/activation.png'
+`/assets/activation.png`
 
 - Xenial Navigation:
-'/assets/Menu.png'
+`/assets/Menu.png`
 
 - Customize the Schema output
-'/assets/first-half.png'
-'/assets/second-half.png'
+`/assets/first-half.png`
+`/assets/second-half.png`
 
 - Block Crawl Bots
-'/assets/crawl-bots.PNG'
+`/assets/crawl-bots.PNG`
 
 - Structured Data Results via Google Webmaster Tools ( Please Note: The errors are not because of Xenial. It is from hentry, which is built into WordPress.
-'/assets/SiteNavigationElements.PNG'
-'/assets/webStie.PNG'
-'/assets/totalsd.PNG'
+`/assets/SiteNavigationElements.PNG`
+`/assets/webStie.PNG`
+`/assets/totalsd.PNG`
 
 
 - View your results with Google Structured Data Testing Tool
-'/assets/results.png'
+`/assets/results.png`
 
 
 == Changelog ==
@@ -99,7 +101,31 @@ Insert custom schema for posts
 - Added photographs and better descriptions about with the plugin does to the ReadMe.txt file.
 
 1.1.3
-- sitemap module added to generate sitemaps to be crawed weekly
+- sitemap module added to generate sitemaps to be crawled weekly
+
+1.1.4
+- bug fixes
+
+1.1.5
+- Youtube video added
+- readme file corrected
+
+1.1.6
+- database updated
+- fill form with information form database
+
+1.1.7
+- removed var_dump testing
+
+1.1.8
+- Fixed the bug limited the amount of blog post showing.
+
+1.1.9
+- Fixed variable not declared bugs.
+- Removed lazyload feature.
+
+1.1.10
+- upload custom logo added
 
 == Custom Schema Structured Data Features ==
 
